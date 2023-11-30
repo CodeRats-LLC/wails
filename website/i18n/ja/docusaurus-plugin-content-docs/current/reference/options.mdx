@@ -57,7 +57,14 @@ func main() {
         Bind: []interface{}{
             app,
         },
+        EnumBind: []interface{}{
+            AllWeekdays,
+        },
         ErrorFormatter: func(err error) any { return err.Error() },
+        SingleInstanceLock: &options.SingleInstanceLock{
+          UniqueId:               "c9c8fd93-6758-4144-87d1-34bdb0a8bd60",
+          OnSecondInstanceLaunch: app.onSecondInstanceLaunch,
+        },
         Windows: &windows.Options{
             WebviewIsTransparent:              false,
             WindowIsTranslucent:               false,
@@ -75,11 +82,11 @@ func main() {
                 LightModeTitleText: windows.RGB(20, 20, 20),
                 LightModeBorder:    windows.RGB(200, 200, 200),
             },
-            // ユーザへのメッセージをカスタマイズします
+            // User messages that can be customised
             Messages *windows.Messages
-            // OnSuspendはWindowsが省電力モードに移行した場合に呼び出されます
+            // OnSuspend is called when Windows enters low power mode
             OnSuspend func()
-            // OnResumeはWindowsが省電力モードから復帰した場合に呼び出されます
+            // OnResume is called when Windows resumes from low power mode
             OnResume func(),
             WebviewGpuDisabled: false,
         },
@@ -91,6 +98,8 @@ func main() {
                 FullSizeContent:            false,
                 UseToolbar:                 false,
                 HideToolbarSeparator:       true,
+                OnFileOpen: app.onFileOpen,
+                      OnUrlOpen:  app.onUrlOpen,
             },
             Appearance:           mac.NSAppearanceNameDarkAqua,
             WebviewIsTransparent: true,
@@ -413,11 +422,36 @@ WebView2の拡大率を定義します。 これは、Edgeのユーザによる�
 
 名前: Bind<br/> データ型: `[]interface{}`
 
+### EnumBind
+
+A slice of Enum arrays that need to be bound to the frontend.
+
+Name: EnumBind<br/> Type: `[]interface{}`
+
 ### ErrorFormatter
 
 JSからGoへ呼び出されたメソッドがエラーを返す際に、エラーをフォーマットする関数です。 返り値はJSONとして変換されます。
 
 名前: ErrorFormatter<br/> データ型: `func (error) any`
+
+### SingleInstanceLock
+
+Enables single instance locking. This means that only one instance of your application can be running at a time.
+
+Name: SingleInstanceLock<br/> Type: `*options.SingleInstanceLock`
+
+#### UniqueId
+
+This id is used to generate the mutex name on Windows and macOS and the dbus name on Linux. Use a UUID to ensure that the id is unique.
+
+Name: UniqueId<br/> Type: `string`
+
+#### OnSecondInstanceLaunch
+
+Callback that is called when a second instance of your app is launched.
+
+Name: OnSecondInstanceLaunch<br/> Type: `func(secondInstanceData SecondInstanceData)`
+
 
 ### Windows
 
@@ -694,6 +728,18 @@ Mac: &mac.Options{
 
 名前: WindowIsTranslucent<br/> データ型: `bool`
 
+#### OnFileOpen
+
+Callback that is called when a file is opened with the application.
+
+Name: OnFileOpen<br/> Type: `func(filePath string)`
+
+#### OnUrlOpen
+
+Callback that is called when a URL is opened with the application.
+
+Name: OnUrlOpen<br/> Type: `func(filePath string)`
+
 #### Preferences
 
 The Preferences struct provides the ability to configure the Webview preferences.
@@ -708,7 +754,7 @@ You can specify the webview preferences.
 type Preferences struct {
     TabFocusesLinks        u.Bool
     TextInteractionEnabled u.Bool
-    FullscreenEnabled      u.Bool 
+    FullscreenEnabled      u.Bool
 }
 ```
 
